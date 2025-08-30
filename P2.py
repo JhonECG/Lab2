@@ -3,7 +3,7 @@ import math
 import pandas as pd
 
 class Record:
-    FORMAT = "i30si20s20s20sf10sb"
+    FORMAT = "i30si20s20s20sf10s" # Definición de división de bits
     FORMAT_SIZE = struct.calcsize(FORMAT)
 
     def __init__(self, employee_id, employee_name, age, country,
