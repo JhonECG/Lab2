@@ -105,7 +105,3 @@ class SequentialFile:
                 if init_key <= record.employee_id <= end_key:
                     results.append(record)
             return results
-
-    # def search(key)
-    # def remove(key)
-    # def rangeSearch(init_key,end_key)
