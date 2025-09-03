@@ -1,9 +1,8 @@
 import struct
-import math
 import pandas as pd
 
 class Record:
-    FORMAT = "i30si20s20s20sf10s" # Definición de división de bits
+    FORMAT = "i30si20s20s20sf10s"
     FORMAT_SIZE = struct.calcsize(FORMAT)
 
     def __init__(self, employee_id, employee_name, age, country,
@@ -19,66 +18,186 @@ class Record:
         self.active = active
 
     def pack(self):
-        data = struct.pack(self.FORMAT, self.employee_id, self.employee_name.encode(), self.age,
-                           self.country.encode(), self.department.encode(), self.position.encode(),
-                           self.salary, self.joining_date.encode(), self.active)
-        return data
+        return struct.pack(self.FORMAT,
+                           self.employee_id,
+                           self.employee_name.encode().ljust(30, b'\x00'),
+                           self.age,
+                           self.country.encode().ljust(20, b'\x00'),
+                           self.department.encode().ljust(20, b'\x00'),
+                           self.position.encode().ljust(20, b'\x00'),
+                           self.salary,
+                           self.joining_date.encode().ljust(10, b'\x00'))
 
     @staticmethod
     def unpack(data):
-        employee_id, employee_name, age, country, department, position, salary, joining_date, active = struct.unpack(Record.FORMAT, data)
-        return Record(employee_id, employee_name.decode().strip('\x00'), age, country.decode().strip('\x00'),
-                      department.decode().strip('\x00'), position.decode().strip('\x00'), salary, joining_date.decode().strip('\x00'), active)
+        fields = struct.unpack(Record.FORMAT, data)
+        return Record(fields[0],
+                      fields[1].decode().strip('\x00'),
+                      fields[2],
+                      fields[3].decode().strip('\x00'),
+                      fields[4].decode().strip('\x00'),
+                      fields[5].decode().strip('\x00'),
+                      fields[6],
+                      fields[7].decode().strip('\x00'),
+                      True)
 
 class Node:
-    def __init__(self, val):
-        self.val = val
+    def __init__(self, record):
+        self.record = record
         self.left = None
         self.right = None
         self.height = 1
 
 class AVL:
-    def __init__(self, datafile, auxdata):
-        self.auxdata = auxdata
-        self.datafile = datafile
+    def __init__(self, datafile):
         self.root = None
-        self.load_tree()
+        self.datafile = datafile
 
-        self.data_sz = self._get_size(self.datafile)
-        self.aux_sz = self._get_size(self.auxdata)
+    # === utilidades de altura y factor balance ===
+    def get_height(self, node):
+        return node.height if node else 0
 
-    def import_from_csv(self, file):
-        data = pd.read_csv(file)
-        for _, row in data.iterrows():
-            record = Record(employee_id=row['employee_id'], employee_name=row['employee_name'],
-                            age=row['age'], country=row['country'], department=row['department'],
-                            position=row['position'], salary=row['salary'],
-                            joining_date=row['joining_date'])
-            self.insert(record)
+    def get_balance(self, node):
+        return self.get_height(node.left) - self.get_height(node.right) if node else 0
 
-    def _get_size(self, file):
-        with open(file, 'rb') as f:
-            f.seek(0, 2)
-            return f.tell() // Record.FORMAT_SIZE
+    def rotate_right(self, y):
+        x = y.left
+        T2 = x.right
+        x.right = y
+        y.left = T2
+        y.height = 1 + max(self.get_height(y.left), self.get_height(y.right))
+        x.height = 1 + max(self.get_height(x.left), self.get_height(x.right))
+        return x
 
-    def insert(self, node, val):
-        if node is None:
-            return Node(val)
-        if node.val == val:
-            return node
-        if val < node.val:
-            node.left = self.insert(node.left, val)
+    def rotate_left(self, x):
+        y = x.right
+        T2 = y.left
+        y.left = x
+        x.right = T2
+        x.height = 1 + max(self.get_height(x.left), self.get_height(x.right))
+        y.height = 1 + max(self.get_height(y.left), self.get_height(y.right))
+        return y
+
+    # === inserción ===
+    def insert(self, node, record):
+        if not node:
+            return Node(record)
+        if record.employee_id < node.record.employee_id:
+            node.left = self.insert(node.left, record)
+        elif record.employee_id > node.record.employee_id:
+            node.right = self.insert(node.right, record)
         else:
-            node.right = self.insert(node.right, val)
+            return node  # no duplicados
 
-            node.height = 1 + max(self.get_height(node.left), self.get_height(node.right))
-            return  node
+        node.height = 1 + max(self.get_height(node.left), self.get_height(node.right))
+        balance = self.get_balance(node)
 
-    def search(self, node, val):
-        if node is None:
-            return False
-        if node.val == val:
-            return True
-        if val < node.val:
-            return self.search(node.left, val)
-        return self.search(node.right, val)
+        # rotaciones
+        if balance > 1 and record.employee_id < node.left.record.employee_id:
+            return self.rotate_right(node)
+        if balance < -1 and record.employee_id > node.right.record.employee_id:
+            return self.rotate_left(node)
+        if balance > 1 and record.employee_id > node.left.record.employee_id:
+            node.left = self.rotate_left(node.left)
+            return self.rotate_right(node)
+        if balance < -1 and record.employee_id < node.right.record.employee_id:
+            node.right = self.rotate_right(node.right)
+            return self.rotate_left(node)
+
+        return node
+
+    def insert_record(self, record):
+        self.root = self.insert(self.root, record)
+        with open(self.datafile, "ab") as f:
+            f.write(record.pack())
+
+    # === búsqueda ===
+    def search(self, node, key):
+        if not node:
+            return None
+        if key == node.record.employee_id:
+            return node.record
+        if key < node.record.employee_id:
+            return self.search(node.left, key)
+        return self.search(node.right, key)
+
+    def search_record(self, key):
+        return self.search(self.root, key)
+
+    # === mínimo nodo ===
+    def get_min(self, node):
+        while node.left:
+            node = node.left
+        return node
+
+    # === eliminación ===
+    def remove(self, node, key):
+        if not node:
+            return node
+        if key < node.record.employee_id:
+            node.left = self.remove(node.left, key)
+        elif key > node.record.employee_id:
+            node.right = self.remove(node.right, key)
+        else:
+            if not node.left:
+                return node.right
+            elif not node.right:
+                return node.left
+            temp = self.get_min(node.right)
+            node.record = temp.record
+            node.right = self.remove(node.right, temp.record.employee_id)
+
+        if not node:
+            return node
+
+        node.height = 1 + max(self.get_height(node.left), self.get_height(node.right))
+        balance = self.get_balance(node)
+
+        if balance > 1 and self.get_balance(node.left) >= 0:
+            return self.rotate_right(node)
+        if balance > 1 and self.get_balance(node.left) < 0:
+            node.left = self.rotate_left(node.left)
+            return self.rotate_right(node)
+        if balance < -1 and self.get_balance(node.right) <= 0:
+            return self.rotate_left(node)
+        if balance < -1 and self.get_balance(node.right) > 0:
+            node.right = self.rotate_right(node.right)
+            return self.rotate_left(node)
+
+        return node
+
+    def remove_record(self, key):
+        self.root = self.remove(self.root, key)
+
+    # === búsqueda por rango ===
+    def range_search(self, node, start, end, result):
+        if not node:
+            return
+        if start < node.record.employee_id:
+            self.range_search(node.left, start, end, result)
+        if start <= node.record.employee_id <= end:
+            result.append(node.record)
+        if end > node.record.employee_id:
+            self.range_search(node.right, start, end, result)
+
+    def range_search_records(self, start, end):
+        result = []
+        self.range_search(self.root, start, end, result)
+        return result
+
+    # === carga desde CSV ===
+    def import_from_csv(self, file):
+        data = pd.read_csv(file, sep=";")
+        for _, row in data.iterrows():
+            record = Record(int(row['Employee_ID']),
+                            row['Employee_Name'],
+                            int(row['Age']),
+                            row['Country'],
+                            row['Department'],
+                            row['Position'],
+                            float(row['Salary']),
+                            row['Joining_Date'])
+            self.insert_record(record)
+
+
+    
