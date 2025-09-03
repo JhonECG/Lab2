@@ -17,5 +17,7 @@ print("Empleado con ID=1003 eliminado")
 # 5. Búsqueda por rango
 res = avl.range_search_records(1000, 1010)
 print("\nEmpleados en rango [1000-1010]:")
+print("\nID    |Nombre        ")
+print("\n-------------------------")
 for r in res:
-    print(r.employee_id, r.employee_name)
+    print(r.employee_id," | ", r.employee_name)
