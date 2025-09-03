@@ -3,12 +3,12 @@ import random
 import os
 from P1 import SequentialFile, Record as SeqRecord
 
-class SequentialBenchmark:
+class SF_Times:
     def __init__(self):
         self.data_sizes = [100, 500, 1000, 2000, 5000, 10000]
 
     def generate_test_data(self, size):
-        """Genera datos de prueba aleatorios"""
+        # Generar datos de prueba aleatorios
         countries = ['USA', 'UK', 'Germany', 'France', 'Spain', 'Italy', 'Canada', 'Australia']
         departments = ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance', 'Operations']
         positions = ['Manager', 'Developer', 'Analyst', 'Coordinator', 'Director', 'Assistant']
@@ -38,13 +38,13 @@ class SequentialBenchmark:
         return records
 
     def clean_files(self, files):
-        """Limpia archivos de prueba"""
+        # Limpiar archivos de prueba
         for file in files:
             if os.path.exists(file):
                 os.remove(file)
 
     def measure_sequential_operations(self, data_size):
-        """Mide el rendimiento de las operaciones en archivo secuencial"""
+        # Medir el rendimiento de las operaciones en archivo secuencial
         print(f"\n--- Sequential File con {data_size} registros ---")
         
         data = self.generate_test_data(data_size)
@@ -62,10 +62,10 @@ class SequentialBenchmark:
         
         seq_file = SequentialFile(datafile, auxfile)
         
-        # Medir inserción - ejecutar 3 veces y promediar
+        # Medir la inserción
         insert_times = []
         for trial in range(3):
-            # Limpiar y recrear archivos para cada trial
+            # Limpiar y recrear archivos
             self.clean_files([datafile, auxfile])
             with open(datafile, 'wb') as f:
                 pass
@@ -92,7 +92,7 @@ class SequentialBenchmark:
         avg_insert_time = sum(insert_times) / len(insert_times)
         print(f"Insercion (promedio de 3 ejecuciones): {avg_insert_time:.2f} ms")
         
-        # Medir búsqueda individual - 1 registro, 5 veces promedio
+        # Medir la búsqueda individual
         search_sample = random.choice(data)
         search_times = []
         for trial in range(5):
@@ -104,7 +104,7 @@ class SequentialBenchmark:
         avg_search_time = sum(search_times) / len(search_times)
         print(f"Busqueda individual (promedio de 5 ejecuciones): {avg_search_time:.4f} ms")
         
-        # Medir búsqueda por rango - 3 veces promedio
+        # Medir la búsqueda por rango
         ids = [record['employee_id'] for record in data]
         ids.sort()
         range_size = max(50, len(ids) // 10)
@@ -121,7 +121,7 @@ class SequentialBenchmark:
         avg_range_time = sum(range_times) / len(range_times)
         print(f"Busqueda por rango (promedio de 3 ejecuciones): {avg_range_time:.2f} ms")
         
-        # Medir eliminación - 1 registro, 5 veces promedio
+        # Medir la eliminación
         delete_sample = random.choice(data)
         delete_times = []
         for trial in range(5):
@@ -137,9 +137,9 @@ class SequentialBenchmark:
         self.clean_files([datafile, auxfile])
 
     def run_benchmark(self):
-        """Ejecuta todas las pruebas de rendimiento para Sequential File"""
+        # Ejecutar todas las pruebas de rendimiento para Sequential File
         print("="*50)
-        print("BENCHMARK SEQUENTIAL FILE")
+        print("SEQUENTIAL FILE")
         print("="*50)
         
         for data_size in self.data_sizes:
@@ -150,13 +150,9 @@ class SequentialBenchmark:
             self.measure_sequential_operations(data_size)
 
 def main():
-    """Función principal"""
-    benchmark = SequentialBenchmark()
+    benchmark = SF_Times()
     benchmark.run_benchmark()
-    print("\nBenchmark completado!")
-
-if __name__ == "__main__":
-    main()
+    print("\nPruebas de tiempo completadas!")
 
 if __name__ == "__main__":
     main()
