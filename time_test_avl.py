@@ -45,7 +45,7 @@ class AVL_Times:
 
     def measure_avl_operations(self, data_size):
         # Medir el rendimiento de las operaciones en archivo secuencial
-        print(f"\n--- Sequential File con {data_size} registros ---")
+        print(f"\n--- AVL File con {data_size} registros ---")
         
         data = self.generate_test_data(data_size)
         avl = AVL('avl_test_data.dat')
