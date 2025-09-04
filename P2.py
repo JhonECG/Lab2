@@ -53,7 +53,6 @@ class AVL:
         self.root = None
         self.datafile = datafile
 
-    # === utilidades de altura y factor balance ===
     def get_height(self, node):
         return node.height if node else 0
 
@@ -78,7 +77,6 @@ class AVL:
         y.height = 1 + max(self.get_height(y.left), self.get_height(y.right))
         return y
 
-    # === inserción ===
     def insert(self, node, record):
         if not node:
             return Node(record)
@@ -87,12 +85,11 @@ class AVL:
         elif record.employee_id > node.record.employee_id:
             node.right = self.insert(node.right, record)
         else:
-            return node  # no duplicados
+            return node
 
         node.height = 1 + max(self.get_height(node.left), self.get_height(node.right))
         balance = self.get_balance(node)
 
-        # rotaciones
         if balance > 1 and record.employee_id < node.left.record.employee_id:
             return self.rotate_right(node)
         if balance < -1 and record.employee_id > node.right.record.employee_id:
@@ -124,13 +121,11 @@ class AVL:
     def search_record(self, key):
         return self.search(self.root, key)
 
-    # === mínimo nodo ===
     def get_min(self, node):
         while node.left:
             node = node.left
         return node
 
-    # === eliminación ===
     def remove(self, node, key):
         if not node:
             return node
@@ -169,7 +164,6 @@ class AVL:
     def remove_record(self, key):
         self.root = self.remove(self.root, key)
 
-    # === búsqueda por rango ===
     def range_search(self, node, start, end, result):
         if not node:
             return
@@ -185,7 +179,6 @@ class AVL:
         self.range_search(self.root, start, end, result)
         return result
 
-    # === carga desde CSV ===
     def import_from_csv(self, file):
         data = pd.read_csv(file, sep=";")
         for _, row in data.iterrows():
